@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FitMate AI – Web Demo</title>
+  <!--
+    FitMate AI – Single-file demo (no build tools required)
+    How to run:
+      1) Save this file as fitmate.html
+      2) Double-click to open in your browser (or use VS Code Live Server)
+      3) It stores data in localStorage; no backend needed
+  -->
+  <style>
+    :root{
+      --bg:#0f172a; --bg2:#0b1220; --card:#0b1324; --muted:#9ca3af; --text:#e5e7eb; --accent:#22c55e; --accent2:#16a34a;
+      --shadow: 0 20px 60px rgba(0,0,0,.35);
+    }
+    *{box-sizing:border-box; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;}
+    body{margin:0; background: radial-gradient(1000px 600px at 20% 0%, #162036, transparent 60%), linear-gradient(135deg, #0b1020, #161f33 60%, #0b1020); color:var(--text);}    
+    .container{max-width:1120px; margin:0 auto; padding:20px;}
+    .app{display:grid; gap:18px;}
+    header{display:flex; align-items:center; justify-content:space-between;}
+    .brand{display:flex; align-items:center; gap:12px; font-weight:800; letter-spacing:.3px;}
+    .logo{width:36px; height:36px; border-radius:11px; background:linear-gradient(135deg,var(--accent),#86efac); box-shadow: var(--shadow);} 
+    .muted{color:var(--muted)}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)); border:1px solid #21314f; border-radius:18px; box-shadow: var(--shadow);}
+    .card.pad{padding:18px;}
+    .grid{display:grid; gap:18px}
+    .grid.cols-2{grid-template-columns:1fr}
+    @media(min-width:900px){.grid.cols-2{grid-template-columns:1.2fr .8fr}}
+    .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+    input, select, button, textarea{border-radius:12px; border:1px solid #2b3a59; background:#0a1220; color:var(--text); padding:12px 14px;}
+    input, select, textarea{min-width:0}
+    label{font-size:12px; color:var(--muted); display:block; margin:10px 0 6px}
+    .btn{cursor:pointer; transition:.15s transform,.15s background,.15s border-color;}
+    .btn:hover{transform:translateY(-1px)}
+    .btn.primary{background:var(--accent); color:#052e16; border-color:var(--accent2); font-weight:700}
+    nav.tabs{display:flex; gap:8px; flex-wrap:wrap}
+    nav.tabs button{background:#0a1220; border:1px solid #2b3a59}
+    nav.tabs button.active{background:var(--accent); color:#052e16; border-color:#16a34a}
+    .section{display:none}
+    .section.show{display:block}
+    .badge{display:inline-block; padding:6px 10px; border-radius:999px; border:1px solid #2b3a59; color:var(--muted); font-size:12px}
+    .kpi{display:grid; gap:12px; grid-template-columns:repeat(2,1fr)}
+    .kpi .box{padding:14px; border-radius:14px; background:#0a1424; border:1px solid #22314d}
+    .kpi .big{font-size:22px; font-weight:800}
+    .list{display:grid; gap:10px}
+    .list .li{padding:12px; border-radius:12px; background:#0a1424; border:1px solid #22314d; display:flex; align-items:center; justify-content:space-between}
+    .ok{color:#86efac}
+    .warn{color:#fde68a}
+    .err{color:#fca5a5}
+    .quote{font-style:italic; color:#c7d2fe}
+    .foot{font-size:12px; color:var(--muted); margin-top:8px}
+    .hl{color:#86efac}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="app">
+      <header>
+        <div class="brand">
+          <div class="logo"></div>
+          <div>
+            <div>FitMate <span class="hl">AI</span></div>
+            <div class="muted" style="font-size:12px">Personal fitness & motivation buddy – demo</div>
+          </div>
+        </div>
+        <div class="row">
+          <button id="reset" class="btn">Reset</button>
+          <button id="export" class="btn">Export</button>
+          <button id="importBtn" class="btn">Import</button>
+          <input id="importFile" type="file" accept="application/json" style="display:none" />
+        </div>
+      </header>
+
+      <nav class="tabs">
+        <button class="btn tab active" data-tab="onboarding">Onboarding</button>
+        <button class="btn tab" data-tab="dashboard">Dashboard</button>
+        <button class="btn tab" data-tab="workout">Workout</button>
+        <button class="btn tab" data-tab="meals">Meals</button>
+        <button class="btn tab" data-tab="challenges">Challenges</button>
+        <button class="btn tab" data-tab="progress">Progress</button>
+      </nav>
+
+      <!-- Onboarding -->
+      <section id="onboarding" class="section show card pad">
+        <h2 style="margin:0 0 6px">Tell us about you</h2>
+        <p class="muted" style="margin-top:0">This demo creates personalized workouts & nudges locally in your browser.</p>
+        <div class="grid cols-2">
+          <div>
+            <label>Name</label>
+            <input id="name" placeholder="Alex" />
+            <label>Age</label>
+            <input id="age" type="number" min="10" max="100" placeholder="22" />
+            <label>Height (cm)</label>
+            <input id="height" type="number" placeholder="175" />
+            <label>Weight (kg)</label>
+            <input id="weight" type="number" placeholder="72" />
+          </div>
+          <div>
+            <label>Primary goal</label>
+            <select id="goal">
+              <option value="fat_loss">Fat loss</option>
+              <option value="muscle_gain">Muscle gain</option>
+              <option value="endurance">Endurance</option>
+              <option value="general_fitness">General fitness</option>
+            </select>
+            <label>Equipment</label>
+            <select id="equipment">
+              <option value="none">Bodyweight only</option>
+              <option value="dumbbells">Dumbbells</option>
+              <option value="bands">Resistance bands</option>
+              <option value="gym">Full gym</option>
+            </select>
+            <label>Time per day (min)</label>
+            <input id="minutes" type="number" min="5" max="120" value="30" />
+            <label>Diet preference</label>
+            <select id="diet">
+              <option value="balanced">Balanced</option>
+              <option value="high_protein">High protein</option>
+              <option value="vegetarian">Vegetarian</option>
+              <option value="vegan">Vegan</option>
+              <option value="keto">Keto</option>
+            </select>
+          </div>
+        </div>
+        <div class="row" style="margin-top:14px">
+          <button id="saveProfile" class="btn primary">Save profile</button>
+          <span class="badge" id="profileStatus">Not saved</span>
+        </div>
+      </section>
+
+      <!-- Dashboard -->
+      <section id="dashboard" class="section card pad">
+        <div class="grid cols-2">
+          <div>
+            <h2 style="margin:0 0 6px">Today</h2>
+            <div class="kpi">
+              <div class="box"><div class="muted">Streak</div><div class="big" id="streak">0</div></div>
+              <div class="box"><div class="muted">Minutes</div><div class="big" id="mins">0</div></div>
+            </div>
+            <div style="margin-top:14px">
+              <div class="badge" id="todayDate"></div>
+            </div>
+            <div class="card pad" style="margin-top:14px">
+              <div class="muted">Motivation</div>
+              <div id="motivation" class="quote" style="margin-top:6px"></div>
+              <div class="foot">Auto-updates daily based on your streak & goal.</div>
+            </div>
+          </div>
+          <div>
+            <h3 style="margin:6px 0">Quick actions</h3>
+            <div class="list">
+              <div class="li"><span>Generate today’s workout</span><button id="genWorkout" class="btn primary">Generate</button></div>
+              <div class="li"><span>Mark workout complete</span><button id="completeWorkout" class="btn">Complete</button></div>
+              <div class="li"><span>View meals</span><button class="btn" data-nav="meals">Open</button></div>
+              <div class="li"><span>Start a micro-challenge</span><button class="btn" data-nav="challenges">Pick</button></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Workout -->
+      <section id="workout" class="section card pad">
+        <div class="row" style="justify-content:space-between">
+          <h2 style="margin:0">Workout Plan</h2>
+          <button id="regenWorkout" class="btn">Regenerate</button>
+        </div>
+        <div id="workoutPlan" class="list" style="margin-top:12px"></div>
+        <div class="foot">Workouts are built from your goal, equipment & available minutes.</div>
+      </section>
+
+      <!-- Meals -->
+      <section id="meals" class="section card pad">
+        <h2 style="margin:0 0 6px">Meal plan</h2>
+        <div id="mealPlan" class="list" style="margin-top:12px"></div>
+        <button id="regenMeals" class="btn" style="margin-top:12px">Regenerate meals</button>
+      </section>
+
+      <!-- Challenges -->
+      <section id="challenges" class="section card pad">
+        <h2 style="margin:0 0 6px">Micro-challenges</h2>
+        <div class="list" id="challengeList"></div>
+        <div class="foot">Complete small wins to keep momentum. New set appears daily.</div>
+      </section>
+
+      <!-- Progress -->
+      <section id="progress" class="section card pad">
+        <h2 style="margin:0 0 6px">Progress</h2>
+        <div class="kpi">
+          <div class="box"><div class="muted">Workouts completed</div><div class="big" id="workoutsDone">0</div></div>
+          <div class="box"><div class="muted">Best streak</div><div class="big" id="bestStreak">0</div></div>
+        </div>
+        <div class="card pad" style="margin-top:14px">
+          <div class="muted">Weekly suggestions</div>
+          <ul id="suggestions" style="margin:8px 0 0 18px"></ul>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    // --- Simple local "AI" logic for demo purposes ---
+    const $ = (id)=>document.getElementById(id);
+    const tabs = Array.from(document.querySelectorAll('.tab'));
+    const sections = {
+      onboarding: $('onboarding'), dashboard: $('dashboard'), workout: $('workout'), meals: $('meals'), challenges: $('challenges'), progress: $('progress')
+    };
+
+    const store = {
+      get: (k, d)=>{ try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } },
+      set: (k, v)=> localStorage.setItem(k, JSON.stringify(v)),
+      remove: (k)=> localStorage.removeItem(k)
+    };
+
+    const KEY = 'fitmate_profile_v1';
+    const STATE = 'fitmate_state_v1';
+
+    // Quotes based on streak/goal
+    const QUOTES = {
+      base:[
+        "Small steps beat no steps.",
+        "You don’t have to be extreme—just consistent.",
+        "Done is better than perfect.",
+        "Future you will thank you for this.",
+        "One more rep. One more minute."
+      ],
+      fat_loss:["Progress over perfection. Keep moving."],
+      muscle_gain:["Strength stacks slowly. Trust the process."],
+      endurance:["Endurance is built, not born. Breathe and go."],
+      general_fitness:["Show up, your body follows."]
+    };
+
+    // Exercise library (tiny sample)
+    const EX = {
+      none:[
+        {name:'Bodyweight Squats', type:'strength'},
+        {name:'Push-ups', type:'strength'},
+        {name:'Plank', type:'core'},
+        {name:'Mountain Climbers', type:'cardio'},
+        {name:'Glute Bridges', type:'strength'},
+        {name:'Burpees', type:'cardio'}
+      ],
+      dumbbells:[
+        {name:'DB Goblet Squats', type:'strength'},
+        {name:'DB Bench Press (floor)', type:'strength'},
+        {name:'DB Rows', type:'strength'},
+        {name:'DB Romanian Deadlift', type:'strength'},
+        {name:'DB Shoulder Press', type:'strength'}
+      ],
+      bands:[
+        {name:'Band Squats', type:'strength'},
+        {name:'Band Rows', type:'strength'},
+        {name:'Band Chest Press', type:'strength'},
+        {name:'Band Pull-aparts', type:'mobility'},
+        {name:'Band Deadlifts', type:'strength'}
+      ],
+      gym:[
+        {name:'Back Squat', type:'strength'},
+        {name:'Bench Press', type:'strength'},
+        {name:'Deadlift', type:'strength'},
+        {name:'Lat Pulldown', type:'strength'},
+        {name:'Treadmill Intervals', type:'cardio'}
+      ]
+    };
+
+    // Meal ideas (simple placeholders)
+    const MEALS = {
+      balanced:[
+        {t:'Breakfast', d:'Oats + yoghurt + berries'},
+        {t:'Lunch', d:'Chicken salad bowl + rice'},
+        {t:'Dinner', d:'Salmon, potatoes, greens'}
+      ],
+      high_protein:[
+        {t:'Breakfast', d:'Egg scramble + toast'},
+        {t:'Lunch', d:'Turkey wrap + veggies'},
+        {t:'Dinner', d:'Beef stir-fry + quinoa'}
+      ],
+      vegetarian:[
+        {t:'Breakfast', d:'Greek yoghurt + fruit + nuts'},
+        {t:'Lunch', d:'Lentil & feta salad'},
+        {t:'Dinner', d:'Paneer tikka + rice'}
+      ],
+      vegan:[
+        {t:'Breakfast', d:'Tofu scramble + avocado toast'},
+        {t:'Lunch', d:'Chickpea bowl + quinoa'},
+        {t:'Dinner', d:'Tempeh stir-fry + rice'}
+      ],
+      keto:[
+        {t:'Breakfast', d:'Omelette + spinach'},
+        {t:'Lunch', d:'Chicken Caesar (no croutons)'},
+        {t:'Dinner', d:'Steak + broccoli + butter'}
+      ]
+    };
+
+    const CHALLENGES = [
+      '10,000 steps today',
+      'Hold a 60s plank',
+      'No sugary drinks',
+      'Sleep 8 hours',
+      'Stretch 10 minutes',
+      'Add 1 extra set to one exercise'
+    ];
+
+    function todayStr(){
+      const d = new Date();
+      return d.toISOString().slice(0,10); // YYYY-MM-DD
+    }
+
+    function loadProfile(){
+      return store.get(KEY, null);
+    }
+
+    function saveProfile(p){
+      store.set(KEY, p);
+    }
+
+    function loadState(){
+      return store.get(STATE, {streak:0, bestStreak:0, lastDone:null, workoutsDone:0, minutes:0, plan:[], meals:[], challenges:[], lastGen: null});
+    }
+
+    function saveState(s){
+      store.set(STATE, s);
+    }
+
+    function pick(arr, n){
+      const a=[...arr]; const out=[]; while(a.length && out.length<n){ out.push(a.splice(Math.floor(Math.random()*a.length),1)[0]); } return out;
+    }
+
+    function genWorkout(profile){
+      const src = EX[profile.equipment || 'none'];
+      const mins = Math.max(10, Math.min(90, parseInt(profile.minutes||30)));
+      const blocks = Math.max(3, Math.min(8, Math.round(mins/8)));
+      const plan = pick(src, Math.min(src.length, blocks)).map((e,i)=>({
+        name: e.name,
+        sets: profile.goal==='endurance'? 3 : 4,
+        reps: e.type==='cardio'? `${Math.max(20,Math.min(60, Math.round(mins/blocks)))}s` : (profile.goal==='muscle_gain'? 10 : 15),
+        rest: e.type==='cardio'? '30s' : '60s'
+      }));
+      return {minutes: mins, items: plan};
+    }
+
+    function genMeals(profile){
+      const set = MEALS[profile.diet || 'balanced'];
+      return set.map(m=>({title:m.t, desc:m.d}));
+    }
+
+    function genChallenges(){
+      return pick(CHALLENGES, 3).map(t=>({title:t, done:false}));
+    }
+
+    function motivationFor(profile, s){
+      const base = [...QUOTES.base, ...(QUOTES[profile.goal]||[])];
+      const idx = (s.streak + new Date().getDay()) % base.length;
+      return base[idx];
+    }
+
+    function updateStreakOnComplete(s){
+      const today = todayStr();
+      if(s.lastDone !== today){
+        // If yesterday was last done, continue streak; else reset to 1
+        const y = new Date(); y.setDate(y.getDate()-1); const yStr = y.toISOString().slice(0,10);
+        if(s.lastDone === yStr) s.streak += 1; else s.streak = 1;
+        s.bestStreak = Math.max(s.bestStreak, s.streak);
+        s.lastDone = today; s.workoutsDone += 1;
+      }
+      return s;
+    }
+
+    function renderAll(){
+      const p = loadProfile();
+      const s = loadState();
+
+      // Onboarding values
+      if(p){
+        $('name').value = p.name||''; $('age').value=p.age||''; $('height').value=p.height||''; $('weight').value=p.weight||'';
+        $('goal').value=p.goal||'general_fitness'; $('equipment').value=p.equipment||'none'; $('minutes').value=p.minutes||30; $('diet').value=p.diet||'balanced';
+        $('profileStatus').textContent = 'Saved';
+      } else {
+        $('profileStatus').textContent = 'Not saved';
+      }
+
+      // Dashboard
+      $('streak').textContent = s.streak || 0;
+      $('mins').textContent = (s.plan && s.plan.minutes) || (loadProfile()?.minutes || 0);
+      $('todayDate').textContent = todayStr();
+      $('motivation').textContent = motivationFor(p || {goal:'general_fitness'}, s);
+
+      // Workout list
+      const w = s.plan?.items || [];
+      $('workoutPlan').innerHTML = w.length ? w.map(it=>`<div class="li"><div>${it.name}<div class="foot">${it.sets} sets × ${it.reps} · Rest ${it.rest}</div></div><span class="badge">Ready</span></div>`).join('') : '<div class="muted">No plan yet. Click Generate.</div>';
+
+      // Meals
+      const meals = s.meals || [];
+      $('mealPlan').innerHTML = meals.length ? meals.map(m=>`<div class="li"><div><strong>${m.title}</strong><div class="foot">${m.desc}</div></div></div>`).join('') : '<div class="muted">No meals yet. Click Regenerate meals.</div>';
+
+      // Challenges
+      const ch = s.challenges || [];
+      $('challengeList').innerHTML = ch.length ? ch.map((c,i)=>`<div class="li"><div>${c.title}</div><button class="btn ${c.done?'primary':''}" data-ch="${i}">${c.done?'Done':''}</button></div>`).join('') : '<div class="muted">No challenges yet.</div>';
+
+      // Progress
+      $('workoutsDone').textContent = s.workoutsDone || 0;
+      $('bestStreak').textContent = s.bestStreak || 0;
+
+      // Suggestions
+      const sug = [];
+      if((s.streak||0) < 3) sug.push('Aim for a 3-day streak this week.');
+      if((s.plan?.minutes||0) < 25) sug.push('Increase daily minutes by +5 for two sessions.');
+      if((s.workoutsDone||0) % 5 === 0 && s.workoutsDone>0) sug.push('Nice milestone! Add one mobility session.');
+      $('suggestions').innerHTML = sug.map(x=>`<li>${x}</li>`).join('') || '<li>Keep going—consistency wins.</li>';
+    }
+
+    // Tab nav
+    tabs.forEach(b=>{
+      b.addEventListener('click', ()=>{
+        tabs.forEach(x=>x.classList.remove('active'));
+        b.classList.add('active');
+        Object.values(sections).forEach(s=>s.classList.remove('show'));
+        sections[b.dataset.tab].classList.add('show');
+      })
+    })
+
+    // Save profile
+    $('saveProfile').addEventListener('click', ()=>{
+      const p = {
+        name:$('name').value.trim(), age:+$('age').value||null, height:+$('height').value||null, weight:+$('weight').value||null,
+        goal:$('goal').value, equipment:$('equipment').value, minutes:+$('minutes').value||30, diet:$('diet').value
+      };
+      saveProfile(p); $('profileStatus').textContent='Saved'; renderAll();
+    });
+
+    // Generate items
+    $('genWorkout').addEventListener('click', ()=>{
+      const p = loadProfile() || {goal:'general_fitness', equipment:'none', minutes:20, diet:'balanced'};
+      const s = loadState();
+      s.plan = genWorkout(p); s.lastGen = todayStr(); saveState(s); renderAll();
+      // switch tab
+      document.querySelector('[data-tab="workout"]').click();
+    });
+
+    $('regenWorkout').addEventListener('click', ()=>{
+      const p = loadProfile(); const s = loadState(); s.plan = genWorkout(p); s.lastGen = todayStr(); saveState(s); renderAll();
+    });
+
+    $('regenMeals').addEventListener('click', ()=>{
+      const p = loadProfile(); const s = loadState(); s.meals = genMeals(p); saveState(s); renderAll();
+    });
+
+    // Challenges toggle
+    $('challengeList').addEventListener('click', (e)=>{
+      const idx = e.target?.dataset?.ch; if(idx==null) return; const s = loadState(); s.challenges[idx].done = !s.challenges[idx].done; saveState(s); renderAll();
+    });
+
+    // Complete workout
+    $('completeWorkout').addEventListener('click', ()=>{
+      const s = loadState(); updateStreakOnComplete(s); s.minutes += s.plan?.minutes||0; if(!s.challenges?.length) s.challenges = genChallenges(); saveState(s); renderAll();
+      alert('Nice work! Streak updated.');
+    });
+
+    // Quick open buttons
+    document.querySelectorAll('[data-nav]').forEach(btn=>btn.addEventListener('click',()=>{
+      document.querySelector(`[data-tab="${btn.dataset.nav}"]`).click();
+    }));
+
+    // Export / Import / Reset
+    $('export').addEventListener('click', ()=>{
+      const data = {profile: loadProfile(), state: loadState()};
+      const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'fitmate_export.json'; a.click();
+    });
+    $('importBtn').addEventListener('click', ()=> $('importFile').click());
+    $('importFile').addEventListener('change', (e)=>{
+      const file = e.target.files[0]; if(!file) return; const r = new FileReader(); r.onload = ()=>{
+        try{ const data = JSON.parse(r.result); if(data.profile) saveProfile(data.profile); if(data.state) saveState(data.state); renderAll(); alert('Imported!'); }catch{ alert('Invalid file'); }
+      }; r.readAsText(file);
+    });
+    $('reset').addEventListener('click', ()=>{ if(confirm('Reset all data?')){ store.remove(KEY); store.remove(STATE); renderAll(); }});
+
+    // First-time seed
+    (function init(){
+      let s = loadState();
+      if(!s.challenges?.length) s.challenges = genChallenges();
+      if(!s.meals?.length){ const p = loadProfile() || {diet:'balanced'}; s.meals = genMeals(p); }
+      if(!s.plan?.items?.length){ const p = loadProfile() || {goal:'general_fitness', equipment:'none', minutes:20}; s.plan = genWorkout(p); }
+      saveState(s);
+      $('todayDate').textContent = todayStr();
+      renderAll();
+    })();
+  </script>
+</body>
+</html>
+
